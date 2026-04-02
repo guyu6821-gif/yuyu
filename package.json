@@ -1,0 +1,18 @@
+{
+  "name": "real-time-everything",
+  "version": "1.0.0",
+  "description": "Real Time Everything - Friends Trust App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "multer": "^1.4.5-lts.1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

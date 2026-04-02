@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f1117;
+      --card: #1a1d26;
+      --border: #2a2d3a;
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ========== GİRİŞ EKRANI ========== */
+    .login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f1117 0%, #1a1d26 100%);
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .login-icon {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #6366f1, #818cf8);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin: 0 auto 20px;
+    }
+
+    .login-title {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .login-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .form-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 16px;
+      font-size: 15px;
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus { border-color: var(--primary); }
+
+    .login-btn {
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.2s;
+      font-family: inherit;
+    }
+
+    .login-btn:hover { opacity: 0.9; }
+    .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .login-error {
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #fca5a5;
+      margin-top: 12px;
+      display: none;
+    }
+
+    /* ========== ADMİN PANEL ========== */
+    .admin-panel { display: none; }
+
+    .topbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .topbar-title { font-size: 18px; font-weight: 800; }
+    .topbar-sub { font-size: 12px; color: var(--muted); }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(34,197,94,0.12);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: blink 1.2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .logout-btn {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5;
+      border-radius: 10px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* ========== STATS ========== */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 20px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--primary-light);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    /* ========== SUBMISSIONS ========== */
+    .section-header {
+      padding: 0 20px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .count-badge {
+      background: var(--primary);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    .clear-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      padding: 5px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .submissions-list {
+      padding: 0 20px 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .sub-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      animation: fadeInCard 0.4s ease;
+    }
+
+    @keyframes fadeInCard {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .sub-card.new {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px rgba(99,102,241,0.2), 0 4px 20px rgba(99,102,241,0.1);
+    }
+
+    .sub-header {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sub-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sub-avatar {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .sub-name {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .sub-time {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .new-tag {
+      background: rgba(99,102,241,0.15);
+      color: var(--primary-light);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* ========== MƏKAN ========== */
+    .sub-location {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .loc-icon {
+      width: 34px;
+      height: 34px;
+      background: rgba(99,102,241,0.1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .loc-details { flex: 1; }
+    .loc-coords { font-size: 13px; font-weight: 600; font-family: monospace; color: var(--text); }
+    .loc-acc { font-size: 11px; color: var(--muted); }
+
+    .map-btn {
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 8px;
+      color: var(--primary-light);
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ========== KAMERAlar ========== */
+    .sub-photos {
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .photo-block {}
+    .photo-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .photo-img {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      border-radius: 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .photo-img:hover { transform: scale(1.02); }
+
+    .no-photo {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    /* ========== ŞƏKİL BÖYÜDMƏ ========== */
+    .photo-lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      cursor: pointer;
+    }
+
+    .photo-lightbox.open { display: flex; }
+    .lightbox-img {
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 12px;
+    }
+
+    /* ========== BOŞ VƏZİYYƏT ========== */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      display: none;
+    }
+    .empty-state.show { display: block; }
+    .empty-icon { font-size: 52px; margin-bottom: 16px; }
+    .empty-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .empty-sub { font-size: 14px; color: var(--muted); }
+
+    /* ========== RESPONSIVE ========== */
+    @media (min-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(6, 1fr); }
+      .submissions-list { max-width: 700px; margin: 0 auto; }
+      .section-header { max-width: 700px; margin: 0 auto 12px; padding: 0 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Giriş ekranı -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-icon">🛡️</div>
+    <h1 class="login-title">Admin Paneli</h1>
+    <p class="login-sub">Davam etmək üçün giriş edin</p>
+
+    <div class="form-group">
+      <label class="form-label">İstifadəçi adı</label>
+      <input type="text" class="form-input" id="loginUser" placeholder="Ad daxil edin..." autocomplete="off"/>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Şifrə</label>
+      <input type="password" class="form-input" id="loginPass" placeholder="••••••••"/>
+    </div>
+
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">
+      <i class="fas fa-sign-in-alt"></i> Daxil ol
+    </button>
+
+    <div class="login-error" id="loginError">
+      <i class="fas fa-exclamation-circle"></i> Yanlış ad və ya şifrə
+    </div>
+  </div>
+</div>
+
+<!-- Admin Panel -->
+<div class="admin-panel" id="adminPanel">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-icon">🛡️</div>
+      <div>
+        <div class="topbar-title">Admin Panel</div>
+        <div class="topbar-sub">Real Time Everything</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        CANLI
+      </div>
+      <button class="logout-btn" onclick="doLogout()">
+        <i class="fas fa-sign-out-alt"></i> Çıxış
+      </button>
+    </div>
+  </div>
+
+  <!-- Statistikalar -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-val" id="statTotal">0</div>
+      <div class="stat-label">Toplam</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statToday">0</div>
+      <div class="stat-label">Bu gün</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statLast">-</div>
+      <div class="stat-label">Son</div>
+    </div>
+  </div>
+
+  <!-- Göndərmələr -->
+  <div class="section-header">
+    <div class="section-title">
+      <i class="fas fa-users"></i>
+      Göndərmələr
+      <span class="count-badge" id="countBadge">0</span>
+    </div>
+    <button class="clear-btn" onclick="clearAll()">Hamısını sil</button>
+  </div>
+
+  <div class="submissions-list" id="submissionsList">
+    <!-- Kartlar buraya əlavə olunur -->
+  </div>
+
+  <div class="empty-state" id="emptyState">
+    <div class="empty-icon">📭</div>
+    <div class="empty-title">Hələ göndərmə yoxdur</div>
+    <div class="empty-sub">İstifadəçilər sifariş verdikcə buradan izləyə biləcəksiniz</div>
+  </div>
+
+</div>
+
+<!-- Şəkil lightbox -->
+<div class="photo-lightbox" id="lightbox" onclick="closeLightbox()">
+  <img class="lightbox-img" id="lightboxImg" src="" alt=""/>
+</div>
+
+<script>
+  let socket = null;
+  let submissions = [];
+  let adminUser = '';
+  let adminPass = '';
+  let isLoggedIn = false;
+
+  // Enter ilə giriş
+  document.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !isLoggedIn) doLogin();
+  });
+
+  async function doLogin() {
+    const user = document.getElementById('loginUser').value.trim();
+    const pass = document.getElementById('loginPass').value.trim();
+    const btn = document.getElementById('loginBtn');
+    const err = document.getElementById('loginError');
+
+    if (!user || !pass) {
+      err.style.display = 'block';
+      err.textContent = '⚠️ Boş sahələri doldurun';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Yoxlanılır...';
+    err.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, password: pass })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        adminUser = user;
+        adminPass = pass;
+        isLoggedIn = true;
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        initSocket();
+        loadSubmissions();
+      } else {
+        err.style.display = 'block';
+        err.textContent = '❌ Yanlış ad və ya şifrə';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Daxil ol';
+      }
+    } catch(e) {
+      err.style.display = 'block';
+      err.textContent = '🔌 Server bağlantısı xətası';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Daxil ol';
+    }
+  }
+
+  function doLogout() {
+    isLoggedIn = false;
+    if (socket) socket.disconnect();
+    document.getElementById('adminPanel').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Daxil ol';
+  }
+
+  function initSocket() {
+    socket = io();
+
+    socket.on('connect', () => {
+      socket.emit('joinAdmin', { username: adminUser, password: adminPass });
+    });
+
+    socket.on('adminJoined', (data) => {
+      if (data.success) {
+        submissions = data.submissions || [];
+        renderAll();
+      }
+    });
+
+    socket.on('newSubmission', (sub) => {
+      submissions.unshift(sub);
+      renderAll();
+      // Yeni giriş bildirişi
+      playNotification();
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Socket bağlantısı kəsildi');
+    });
+  }
+
+  async function loadSubmissions() {
+    try {
+      const res = await fetch(`/api/submissions?username=${adminUser}&password=${adminPass}`);
+      const data = await res.json();
+      if (data.success) {
+        submissions = data.data || [];
+        renderAll();
+      }
+    } catch(e) {
+      console.error('Yüklənmə xətası:', e);
+    }
+  }
+
+  function renderAll() {
+    updateStats();
+    renderSubmissions();
+  }
+
+  function updateStats() {
+    const total = submissions.length;
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('countBadge').textContent = total;
+
+    const today = new Date().toDateString();
+    const todayCount = submissions.filter(s => new Date(s.receivedAt).toDateString() === today).length;
+    document.getElementById('statToday').textContent = todayCount;
+
+    if (submissions.length > 0) {
+      const last = new Date(submissions[0].receivedAt);
+      const mins = Math.floor((Date.now() - last) / 60000);
+      document.getElementById('statLast').textContent = mins < 1 ? 'İndi' : mins + ' dəq';
+    }
+  }
+
+  function renderSubmissions() {
+    const list = document.getElementById('submissionsList');
+    const empty = document.getElementById('emptyState');
+
+    if (submissions.length === 0) {
+      list.innerHTML = '';
+      empty.classList.add('show');
+      return;
+    }
+
+    empty.classList.remove('show');
+    list.innerHTML = submissions.map((sub, idx) => buildCard(sub, idx === 0)).join('');
+  }
+
+  function buildCard(sub, isNew) {
+    const dt = new Date(sub.receivedAt);
+    const timeStr = dt.toLocaleString('az-AZ', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    const initials = (sub.userName || 'İ').charAt(0).toUpperCase();
+
+    const frontImg = sub.frontPhoto
+      ? `<img class="photo-img" src="/uploads/${sub.frontPhoto}" alt="Ön kamera" onclick="openLightbox('/uploads/${sub.frontPhoto}')" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="no-photo" style="display:none"><span style="font-size:24px">📷</span><span>Şəkil yüklənmədi</span></div>`
+      : `<div class="no-photo"><span style="font-size:24px">📷</span><span>Şəkil yoxdur</span></div>`;
+
+    const backImg = sub.backPhoto
+      ? `<img class="photo-img" src="/uploads/${sub.backPhoto}" alt="Arxa kamera" onclick="openLightbox('/uploads/${sub.backPhoto}')" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="no-photo" style="display:none"><span style="font-size:24px">📷</span><span>Şəkil yüklənmədi</span></div>`
+      : `<div class="no-photo"><span style="font-size:24px">📷</span><span>Şəkil yoxdur</span></div>`;
+
+    const mapsUrl = `https://www.google.com/maps?q=${sub.latitude},${sub.longitude}`;
+    const accStr = sub.accuracy ? Math.round(sub.accuracy) + 'm dəqiqlik' : 'Dəqiqlik bilinmir';
+
+    return `
+    <div class="sub-card ${isNew ? 'new' : ''}">
+      <div class="sub-header">
+        <div class="sub-user">
+          <div class="sub-avatar">${initials}</div>
+          <div>
+            <div class="sub-name">${escHtml(sub.userName || 'İstifadəçi')}</div>
+            <div class="sub-time">${timeStr}</div>
+          </div>
+        </div>
+        ${isNew ? '<span class="new-tag">🆕 Yeni</span>' : ''}
+      </div>
+
+      <div class="sub-location">
+        <div class="loc-icon">📍</div>
+        <div class="loc-details">
+          <div class="loc-coords">${sub.latitude?.toFixed(6)}, ${sub.longitude?.toFixed(6)}</div>
+          <div class="loc-acc">${accStr}</div>
+        </div>
+        <a href="${mapsUrl}" target="_blank" class="map-btn">
+          <i class="fas fa-map-marker-alt"></i> Xəritə
+        </a>
+      </div>
+
+      <div class="sub-photos">
+        <div class="photo-block">
+          <div class="photo-label">📱 Ön Kamera</div>
+          ${frontImg}
+        </div>
+        <div class="photo-block">
+          <div class="photo-label">📷 Arxa Kamera</div>
+          ${backImg}
+        </div>
+      </div>
+    </div>
+    `;
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function openLightbox(src) {
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightbox').classList.add('open');
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+  }
+
+  function clearAll() {
+    if (confirm('Bütün göndərmələri silmək istəyirsiniz?')) {
+      submissions = [];
+      renderAll();
+    }
+  }
+
+  function playNotification() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.4);
+    } catch(e) {}
+  }
+</script>
+</body>
+</html>
